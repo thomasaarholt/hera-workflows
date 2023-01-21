@@ -6,6 +6,7 @@ import json
 import textwrap
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing_extensions import Self
 
 from argo_workflows.models import (
     Container,
@@ -357,7 +358,7 @@ class Task(IO):
         task_names = [t.split(".")[0] for t in tasks]
         return task_names
 
-    def next(self, other: "Task", operator: Operator = Operator.And, on: Optional[TaskResult] = None) -> "Task":
+    def next(self, other: Self, operator: Operator = Operator.And, on: Optional[TaskResult] = None) -> Self:
         """Sets this task as a dependency of the other passed task.
 
         Parameters
@@ -389,7 +390,7 @@ class Task(IO):
             other.depends += f" {operator} {self.name + condition}"
         return other
 
-    def __rrshift__(self, other: List["Task"]) -> "Task":
+    def __rrshift__(self, other: List[Self]) -> Self:
         """Sets the `other` as a dependency of `self`.
 
         This method piggybacks on the default fallback mechanism of Python, which invokes `__rrshift__` when
@@ -399,7 +400,7 @@ class Task(IO):
 
         Parameters
         ----------
-        other: List["Task"]
+        other: List[Self]
             The list of upstream dependencies of this task.
 
         Returns
@@ -412,17 +413,17 @@ class Task(IO):
             o.next(self)
         return self
 
-    def __rshift__(self, other: Union["Task", List["Task"]]) -> Union["Task", List["Task"]]:
+    def __rshift__(self, other: Union[Self, List[Self]]) -> Union[Self, List[Self]]:
         """Sets this task as a dependency of the other passed task.
 
         Parameters
         ----------
-        other: Union["Task", List["Task"]]
+        other: Union[Self, List[Self]]
             The other task(s) to set a dependency for. The new dependency of the task is this task.
 
         Returns
         -------
-        Union["Task", List["Task"]]
+        Union[Self, List[Self]]
             The other task/s that was/were specified as the dependencies.
 
         Examples
@@ -442,7 +443,7 @@ class Task(IO):
             return other
         raise ValueError(f"Unknown type {type(other)} provided to `__rshift__`")
 
-    def on_workflow_status(self, status: WorkflowStatus, op: Operator = Operator.Equals) -> "Task":
+    def on_workflow_status(self, status: WorkflowStatus, op: Operator = Operator.Equals) -> Self:
         """Execute this task conditionally on a workflow status."""
         expression = f"{{{{workflow.status}}}} {op} {status}"
         if self.when:
@@ -451,19 +452,19 @@ class Task(IO):
             self.when = expression
         return self
 
-    def on_success(self, other: "Task") -> "Task":
+    def on_success(self, other: Self) -> Self:
         """Execute `other` when this task succeeds"""
         return self.next(other, on=TaskResult.Succeeded)
 
-    def on_failure(self, other: "Task") -> "Task":
+    def on_failure(self, other: Self) -> Self:
         """Execute `other` when this task fails"""
         return self.next(other, on=TaskResult.Failed)
 
-    def on_error(self, other: "Task") -> "Task":
+    def on_error(self, other: Self) -> Self:
         """Execute `other` when this task errors."""
         return self.next(other, on=TaskResult.Errored)
 
-    def on_exit(self, other: Union["Task", DAG]) -> "Task":
+    def on_exit(self, other: Union[Self, DAG]) -> Self:
         """Execute `other` on completion (exit) of this Task."""
         # in instances when `other` contains a DAG it is the DAG that needs a template to be
         # created. Therefore, this "resets" the `other` to be the DAG that needs to be used
@@ -488,7 +489,7 @@ class Task(IO):
             raise ValueError(f"Unrecognized exit type {type(other)}, supported types are `Task` and `DAG`")
         return self
 
-    def on_other_result(self, other: "Task", value: str, operator: Operator = Operator.Equals) -> "Task":
+    def on_other_result(self, other: Self, value: str, operator: Operator = Operator.Equals) -> Self:
         """Execute this task based on the `other` result"""
         expression = f"'{other.get_result()}' {operator} {value}"
         if self.when:
@@ -498,7 +499,7 @@ class Task(IO):
         other.next(self)
         return self
 
-    def when_any_succeeded(self, other: "Task") -> "Task":
+    def when_any_succeeded(self, other: Self) -> Self:
         """Sets the other task to execute when any of the tasks of this task group have succeeded.
 
         Parameters
@@ -528,7 +529,7 @@ class Task(IO):
 
         return self.next(other, on=TaskResult.AnySucceeded)
 
-    def when_all_failed(self, other: "Task") -> "Task":
+    def when_all_failed(self, other: Self) -> Self:
         """Sets the other task to execute when all the tasks of this task group have failed
 
         Parameters
